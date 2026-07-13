@@ -5,7 +5,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Abysalto.StefanParch.Api.Services;
 
-public sealed class CartService(ICartRepository cartRepository) : ICartService
+public sealed class CartService(
+    ICartRepository cartRepository,
+    ILogger<CartService> logger) : ICartService
 {
     public async Task<CartCreationResult> CreateCartAsync(
         Guid userId,
@@ -20,6 +22,11 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
 
         var createdCart = await cartRepository.CreateCartAsync(userId, cancellationToken);
         await cartRepository.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Cart Created {CartId} for user {UserId}",
+            createdCart.Id,
+            userId);
 
         return new CartCreationResult(MapToDto(createdCart), Created: true);
     }
@@ -67,6 +74,16 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
         await cartRepository.SaveChangesAsync(cancellationToken);
 
         var updatedCart = await cartRepository.GetCartAsync(cart.Id, cancellationToken);
+        var total = updatedCart is null ? CalculateTotal(cart.Items) : CalculateTotal(updatedCart.Items);
+
+        logger.LogInformation(
+            "Item Added {ProductId} to cart {CartId} for user {UserId}. Quantity {Quantity}, UnitPrice {UnitPrice}, CartTotal {CartTotal}",
+            request.ProductId,
+            cart.Id,
+            userId,
+            request.Quantity,
+            request.UnitPrice,
+            total);
 
         return MapToDto(updatedCart ?? cart);
     }
@@ -79,7 +96,7 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
         var cart = await cartRepository.GetCartByUserIdAsync(userId, cancellationToken);
         var cartItem = cart?.Items.SingleOrDefault(item => item.ProductId == productId);
 
-        if (cartItem is null)
+        if (cart is null || cartItem is null)
         {
             return false;
         }
@@ -89,6 +106,12 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
         if (removed)
         {
             await cartRepository.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation(
+                "Item Removed {ProductId} from cart {CartId} for user {UserId}",
+                productId,
+                cart.Id,
+                userId);
         }
 
         return removed;
@@ -141,6 +164,34 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
         return new CartTotalDto(userId, CalculateTotal(cart.Items));
     }
 
+    public async Task<CheckoutRequestResult?> RequestCheckoutAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var cart = await cartRepository.GetCartByUserIdAsync(userId, cancellationToken);
+
+        if (cart is null)
+        {
+            return null;
+        }
+
+        var total = CalculateTotal(cart.Items);
+        var requestedAt = DateTimeOffset.UtcNow;
+
+        logger.LogInformation(
+            "Checkout Requested for cart {CartId} by user {UserId}. ItemCount {ItemCount}, CartTotal {CartTotal}",
+            cart.Id,
+            userId,
+            cart.Items.Count,
+            total);
+
+        return new CheckoutRequestResult(
+            userId,
+            cart.Id,
+            total,
+            requestedAt);
+    }
+
     private async Task<Cart> GetOrCreateTrackedCartAsync(
         Guid userId,
         CancellationToken cancellationToken)
@@ -154,6 +205,11 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
 
         var createdCart = await cartRepository.CreateCartAsync(userId, cancellationToken);
         await cartRepository.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Cart Created {CartId} for user {UserId}",
+            createdCart.Id,
+            userId);
 
         return createdCart;
     }

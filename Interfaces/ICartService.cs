@@ -25,4 +25,8 @@ public interface ICartService
         CancellationToken cancellationToken = default);
 
     Task<CartTotalDto?> GetTotalAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task<CheckoutRequestResult?> RequestCheckoutAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }

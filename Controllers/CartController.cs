@@ -120,6 +120,23 @@ public sealed class CartController(ICartService cartService) : ControllerBase
             : Ok(total);
     }
 
+    /// <summary>
+    /// Requests checkout for a user's cart.
+    /// </summary>
+    [HttpPost("{userId:guid}/checkout")]
+    [ProducesResponseType(typeof(CheckoutRequestResult), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CheckoutRequestResult>> RequestCheckoutAsync(
+        [FromRoute] UserCartRouteRequest route,
+        CancellationToken cancellationToken)
+    {
+        var checkoutRequest = await cartService.RequestCheckoutAsync(route.UserId, cancellationToken);
+
+        return checkoutRequest is null
+            ? NotFoundProblem("Cart was not found.")
+            : Accepted(checkoutRequest);
+    }
+
     private ActionResult NotFoundProblem(string detail)
     {
         return NotFound(new ProblemDetails
