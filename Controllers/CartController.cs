@@ -27,8 +27,8 @@ public sealed class CartController(ICartService cartService) : ControllerBase
             return Ok(result.Cart);
         }
 
-        return CreatedAtAction(
-            nameof(GetCartAsync),
+        return CreatedAtRoute(
+            "GetCart",
             new { userId = result.Cart.UserId },
             result.Cart);
     }
@@ -36,7 +36,7 @@ public sealed class CartController(ICartService cartService) : ControllerBase
     /// <summary>
     /// Gets a user's cart, creating one when it does not exist.
     /// </summary>
-    [HttpGet("{userId:guid}")]
+    [HttpGet("{userId:guid}", Name = "GetCart")]
     [ProducesResponseType(typeof(CartDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<CartDto>> GetCartAsync(
         [FromRoute] Guid userId,
