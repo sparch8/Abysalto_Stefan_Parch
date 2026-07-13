@@ -7,6 +7,23 @@ namespace Abysalto.StefanParch.Api.Services;
 
 public sealed class CartService(ICartRepository cartRepository) : ICartService
 {
+    public async Task<CartCreationResult> CreateCartAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var cart = await cartRepository.GetCartByUserIdAsync(userId, cancellationToken);
+
+        if (cart is not null)
+        {
+            return new CartCreationResult(MapToDto(cart), Created: false);
+        }
+
+        var createdCart = await cartRepository.CreateCartAsync(userId, cancellationToken);
+        await cartRepository.SaveChangesAsync(cancellationToken);
+
+        return new CartCreationResult(MapToDto(createdCart), Created: true);
+    }
+
     public async Task<CartDto> GetOrCreateCartAsync(
         Guid userId,
         CancellationToken cancellationToken = default)
@@ -56,17 +73,18 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
 
     public async Task<bool> RemoveItemAsync(
         Guid userId,
-        Guid cartItemId,
+        Guid productId,
         CancellationToken cancellationToken = default)
     {
         var cart = await cartRepository.GetCartByUserIdAsync(userId, cancellationToken);
+        var cartItem = cart?.Items.SingleOrDefault(item => item.ProductId == productId);
 
-        if (cart is null || cart.Items.All(item => item.Id != cartItemId))
+        if (cartItem is null)
         {
             return false;
         }
 
-        var removed = await cartRepository.RemoveItemAsync(cartItemId, cancellationToken);
+        var removed = await cartRepository.RemoveItemAsync(cartItem.Id, cancellationToken);
 
         if (removed)
         {
@@ -78,21 +96,22 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
 
     public async Task<CartDto?> UpdateQuantityAsync(
         Guid userId,
-        Guid cartItemId,
+        Guid productId,
         UpdateCartItemQuantityRequest request,
         CancellationToken cancellationToken = default)
     {
         ValidateQuantity(request.Quantity);
 
         var cart = await cartRepository.GetCartByUserIdAsync(userId, cancellationToken);
+        var cartItem = cart?.Items.SingleOrDefault(item => item.ProductId == productId);
 
-        if (cart is null || cart.Items.All(item => item.Id != cartItemId))
+        if (cart is null || cartItem is null)
         {
             return null;
         }
 
         var updated = await cartRepository.UpdateQuantityAsync(
-            cartItemId,
+            cartItem.Id,
             request.Quantity,
             cancellationToken);
 
@@ -106,6 +125,20 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
         var updatedCart = await cartRepository.GetCartAsync(cart.Id, cancellationToken);
 
         return updatedCart is null ? null : MapToDto(updatedCart);
+    }
+
+    public async Task<CartTotalDto?> GetTotalAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var cart = await cartRepository.GetCartByUserIdAsync(userId, cancellationToken);
+
+        if (cart is null)
+        {
+            return null;
+        }
+
+        return new CartTotalDto(userId, CalculateTotal(cart.Items));
     }
 
     private async Task<Cart> GetOrCreateTrackedCartAsync(
@@ -137,7 +170,7 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
             cart.UserId,
             cart.CreatedAt,
             items,
-            items.Sum(item => item.LineTotal));
+            CalculateTotal(items));
     }
 
     private static CartItemDto MapToDto(CartItem item)
@@ -152,6 +185,16 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
             lineTotal);
     }
 
+    private static decimal CalculateTotal(IEnumerable<CartItem> items)
+    {
+        return items.Sum(item => item.Quantity * item.UnitPrice);
+    }
+
+    private static decimal CalculateTotal(IEnumerable<CartItemDto> items)
+    {
+        return items.Sum(item => item.LineTotal);
+    }
+
     private static void ValidateQuantity(int quantity)
     {
         if (quantity <= 0)
@@ -162,9 +205,9 @@ public sealed class CartService(ICartRepository cartRepository) : ICartService
 
     private static void ValidateUnitPrice(decimal unitPrice)
     {
-        if (unitPrice < 0)
+        if (unitPrice <= 0)
         {
-            throw new ValidationException("Unit price cannot be negative.");
+            throw new ValidationException("Unit price must be greater than zero.");
         }
     }
 }

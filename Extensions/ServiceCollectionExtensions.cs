@@ -3,8 +3,11 @@ using Abysalto.StefanParch.Api.Interfaces;
 using Abysalto.StefanParch.Api.Options;
 using Abysalto.StefanParch.Api.Repositories;
 using Abysalto.StefanParch.Api.Services;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using System.Reflection;
 
 namespace Abysalto.StefanParch.Api.Extensions;
 
@@ -45,6 +48,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddPresentation(this IServiceCollection services)
     {
         services.AddControllers();
+        services.AddFluentValidationAutoValidation();
+        services.AddValidatorsFromAssembly(typeof(ServiceCollectionExtensions).Assembly);
         services.AddEndpointsApiExplorer();
 
         return services;
@@ -57,8 +62,17 @@ public static class ServiceCollectionExtensions
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "Abysalto Stefan Parch API",
-                Version = "v1"
+                Version = "v1",
+                Description = "REST API for cart management."
             });
+
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+
+            if (File.Exists(xmlPath))
+            {
+                options.IncludeXmlComments(xmlPath);
+            }
         });
 
         return services;

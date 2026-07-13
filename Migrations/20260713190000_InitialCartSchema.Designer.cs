@@ -91,7 +91,7 @@ partial class InitialCartSchema
             {
                 t.HasCheckConstraint("ck_cart_items_quantity_positive", "quantity > 0");
 
-                t.HasCheckConstraint("ck_cart_items_unit_price_non_negative", "unit_price >= 0");
+                t.HasCheckConstraint("ck_cart_items_unit_price_positive", "unit_price > 0");
             });
         });
 

@@ -39,7 +39,7 @@ public partial class InitialCartSchema : Migration
             {
                 table.PrimaryKey("pk_cart_items", x => x.id);
                 table.CheckConstraint("ck_cart_items_quantity_positive", "quantity > 0");
-                table.CheckConstraint("ck_cart_items_unit_price_non_negative", "unit_price >= 0");
+                table.CheckConstraint("ck_cart_items_unit_price_positive", "unit_price > 0");
                 table.ForeignKey(
                     name: "fk_cart_items_carts_cart_id",
                     column: x => x.cart_id,

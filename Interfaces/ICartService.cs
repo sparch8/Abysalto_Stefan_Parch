@@ -4,6 +4,8 @@ namespace Abysalto.StefanParch.Api.Interfaces;
 
 public interface ICartService
 {
+    Task<CartCreationResult> CreateCartAsync(Guid userId, CancellationToken cancellationToken = default);
+
     Task<CartDto> GetOrCreateCartAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<CartDto> AddItemAsync(
@@ -13,12 +15,14 @@ public interface ICartService
 
     Task<bool> RemoveItemAsync(
         Guid userId,
-        Guid cartItemId,
+        Guid productId,
         CancellationToken cancellationToken = default);
 
     Task<CartDto?> UpdateQuantityAsync(
         Guid userId,
-        Guid cartItemId,
+        Guid productId,
         UpdateCartItemQuantityRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<CartTotalDto?> GetTotalAsync(Guid userId, CancellationToken cancellationToken = default);
 }

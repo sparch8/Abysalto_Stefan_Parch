@@ -36,7 +36,7 @@ public sealed class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
         builder.ToTable(tableBuilder =>
         {
             tableBuilder.HasCheckConstraint("ck_cart_items_quantity_positive", "quantity > 0");
-            tableBuilder.HasCheckConstraint("ck_cart_items_unit_price_non_negative", "unit_price >= 0");
+            tableBuilder.HasCheckConstraint("ck_cart_items_unit_price_positive", "unit_price > 0");
         });
 
         builder.HasIndex(item => item.CartId)
