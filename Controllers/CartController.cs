@@ -39,10 +39,10 @@ public sealed class CartController(ICartService cartService) : ControllerBase
     [HttpGet("{userId:guid}")]
     [ProducesResponseType(typeof(CartDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<CartDto>> GetCartAsync(
-        [FromRoute] UserCartRouteRequest route,
+        [FromRoute] Guid userId,
         CancellationToken cancellationToken)
     {
-        var cart = await cartService.GetOrCreateCartAsync(route.UserId, cancellationToken);
+        var cart = await cartService.GetOrCreateCartAsync(userId, cancellationToken);
 
         return Ok(cart);
     }
@@ -54,11 +54,11 @@ public sealed class CartController(ICartService cartService) : ControllerBase
     [ProducesResponseType(typeof(CartDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CartDto>> AddItemAsync(
-        [FromRoute] UserCartRouteRequest route,
+        [FromRoute] Guid userId,
         AddCartItemRequest request,
         CancellationToken cancellationToken)
     {
-        var cart = await cartService.AddItemAsync(route.UserId, request, cancellationToken);
+        var cart = await cartService.AddItemAsync(userId, request, cancellationToken);
 
         return Ok(cart);
     }
@@ -71,13 +71,14 @@ public sealed class CartController(ICartService cartService) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CartDto>> UpdateQuantityAsync(
-        [FromRoute] CartItemRouteRequest route,
+        [FromRoute] Guid userId,
+        [FromRoute] Guid productId,
         UpdateCartItemQuantityRequest request,
         CancellationToken cancellationToken)
     {
         var cart = await cartService.UpdateQuantityAsync(
-            route.UserId,
-            route.ProductId,
+            userId,
+            productId,
             request,
             cancellationToken);
 
@@ -93,10 +94,11 @@ public sealed class CartController(ICartService cartService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveItemAsync(
-        [FromRoute] CartItemRouteRequest route,
+        [FromRoute] Guid userId,
+        [FromRoute] Guid productId,
         CancellationToken cancellationToken)
     {
-        var removed = await cartService.RemoveItemAsync(route.UserId, route.ProductId, cancellationToken);
+        var removed = await cartService.RemoveItemAsync(userId, productId, cancellationToken);
 
         return removed
             ? NoContent()
@@ -110,10 +112,10 @@ public sealed class CartController(ICartService cartService) : ControllerBase
     [ProducesResponseType(typeof(CartTotalDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CartTotalDto>> GetTotalAsync(
-        [FromRoute] UserCartRouteRequest route,
+        [FromRoute] Guid userId,
         CancellationToken cancellationToken)
     {
-        var total = await cartService.GetTotalAsync(route.UserId, cancellationToken);
+        var total = await cartService.GetTotalAsync(userId, cancellationToken);
 
         return total is null
             ? NotFoundProblem("Cart was not found.")
@@ -127,10 +129,10 @@ public sealed class CartController(ICartService cartService) : ControllerBase
     [ProducesResponseType(typeof(CheckoutRequestResult), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CheckoutRequestResult>> RequestCheckoutAsync(
-        [FromRoute] UserCartRouteRequest route,
+        [FromRoute] Guid userId,
         CancellationToken cancellationToken)
     {
-        var checkoutRequest = await cartService.RequestCheckoutAsync(route.UserId, cancellationToken);
+        var checkoutRequest = await cartService.RequestCheckoutAsync(userId, cancellationToken);
 
         return checkoutRequest is null
             ? NotFoundProblem("Cart was not found.")
