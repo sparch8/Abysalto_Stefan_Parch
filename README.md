@@ -1,7 +1,5 @@
 # Abysalto Stefan Parch API
 
-ASP.NET Core 8 Web API scaffold using controllers, Swagger/OpenAPI, PostgreSQL configuration, dependency injection, and a clean folder structure.
-
 ## Run
 
 ```powershell
@@ -17,9 +15,9 @@ PostgreSQL is configured through:
 
 ```json
 {
-  "ConnectionStrings": {
-    "PostgreSql": "Host=localhost;Port=5432;Database=abysalto_stefan_parch;Username=postgres;Password=postgres"
-  }
+	"ConnectionStrings": {
+		"PostgreSql": "Host=localhost;Port=5432;Database=abysalto_stefan_parch;Username=postgres;Password=postgres"
+	}
 }
 ```
 
